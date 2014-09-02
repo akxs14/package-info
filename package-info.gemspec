@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   eos
   s.authors = ["Angelos Kapsimanis"]
   s.email = 'angelos.kapsimanis@gmail.com'
-  s.files = ["lib/hola.rb"]
+  s.files = ["lib/package-info.rb"]
   s.homepage = "https://github.com/akxs14/package-info"
   s.license = "GPL/V3"
 end
