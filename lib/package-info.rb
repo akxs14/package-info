@@ -36,18 +36,16 @@ class PackageInfo
     end
   end
 
+  def is_dep_5_compatible? text
+    text.include?("Copyright:")
+  end
+
   def parse_dep_5_compatible text
     fields, lines = {}, text.split(/\n/)
     field_name, field_content = "", ""
 
-    lines.each do |line| 
-
-      if line.include?(": ")
-        field_name, field_content = line.split(": ")[0], line.split(": ")[1]
-      else
-        field_content += "\n" + line
-        fields[field_name] = field_content 
-      end
+    lines.each do |line|
+      field_name, field_content = parse_dep_5_line(line, field_name, field_content)
 
       if COPYRIGHT_FIELDS.include?(field_name)
         fields[field_name] = field_content
@@ -56,12 +54,23 @@ class PackageInfo
     fields
   end
 
+  def parse_dep_5_line line, field_name, field_content
+    if line.include?(": ")
+      field_name, field_content = line.split(": ")[0], line.split(": ")[1]
+    else
+      field_content += "\n" + line
+    end
+    return field_name, field_content
+  end
 
   def parse_non_dep_5_compatible text
-    { "License:" => text }
+    fields, lines = {}, text.split(/^$\n/)
+    field_name, field_content = "", ""
+
+    puts lines.length
+    lines.each {|line| puts "!!!!!!!!!!!!!!!\n #{line}" }
+
+    {"foo" => "bar"}    
   end
 
-  def is_dep_5_compatible? text
-    text.include?("Copyright:")
-  end
 end
