@@ -2,11 +2,18 @@
 require 'csv'
 
 class PackageInfo
-  COPYRIGHT_FIELDS = ["Format", "Upstream-Name", "Upstream-Contact",
+  COPYRIGHT_FIELDS = ["License-Title", "Format", "Upstream-Name", "Upstream-Contact",
                       "Source", "Disclaimer", "Comment", "License", 
                       "Copyright", "Files"]
 
   LICENSE_TAGS = ["gpl", "mit", "license", "license"]
+
+  LICENSE_TITLE_TAGS = ["GPL", "GNU General Public License", "LGPL-2+",
+                        "LGPL-2.1+", "LGPL-2", "LGPL-3", "LGPL-3+",
+                        "MPL-1.1", "BSD-2", "zlib", "MIT", "MPL", "ISC",
+                        "BSD", "Boost", "Apache", "BSD-3", "Cisco",
+                        "Apache 2.0", "Apache 1.0", "Apache 1.1", "LGPL",
+                        "ASL", "Artistic", "OFL", "CC-BY-SA", "CPL", ]
 
   COPYRIGHT_TAGS = ["copyright"]
 
@@ -79,6 +86,9 @@ class PackageInfo
     paragraphs.each do |paragraph|
       case
       when match_tags(LICENSE_TAGS, paragraph)
+        fields["License-Title"] += add_license_titles(LICENSE_TITLE_TAGS, paragraph)
+        fields["License"] += paragraph
+      when match_tags(LICENSE_TAGS, paragraph)
         fields["License"] += paragraph
       when match_tags(COPYRIGHT_TAGS, paragraph)
         fields["Copyright"] += paragraph
@@ -110,6 +120,12 @@ class PackageInfo
     fields = {}
     COPYRIGHT_FIELDS.each {|f| fields[f] = ""}
     fields
+  end
+
+  def add_license_titles tags, paragraph
+    titles = ""
+    tags.each {|tag| titles += tag + ", " if paragraph.include?(tag)}
+    titles
   end
 
   def match_tags tags, paragraph
