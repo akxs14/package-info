@@ -59,7 +59,9 @@ class PackageInfo
   end
 
   def parse_dep_5_compatible text
-    fields, lines = {}, text.split(/\n/)
+    fields, lines = {}, text
+      .encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+      .split(/\n/)
     field_name, field_content = "", ""
 
     lines.each do |line|
