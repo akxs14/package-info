@@ -19,10 +19,9 @@ class PackageInfo
   FORMAT_TAGS = ["format", "html", "txt"]
 
   def create_package_file filename = "packages@#{`hostname`}.csv"
-    CSV.open(filename, "w") do |csv|
-      get_package_list.each do |package|
-        csv << get_package_info(package).values
-      end
+    write_header(filename)
+    CSV.open(filename, "ab") do |csv|
+      get_package_list.each {|package| csv << get_package_info(package).values}
     end
   end
 
@@ -44,11 +43,14 @@ class PackageInfo
   def parse_copyright_file package
     return {} if !File.exists?("/usr/share/doc/#{package}/copyright")
     text = File.read("/usr/share/doc/#{package}/copyright")
-    
-    if is_dep_5_compatible?(text) 
-      parse_dep_5_compatible(text)
-    else
-      parse_non_dep_5_compatible(text)
+    is_dep_5_compatible?(text) ? parse_dep_5_compatible(text) : parse_non_dep_5_compatible(text)
+  end
+
+  private
+
+  def write_header filename
+    CSV.open(filename, "w") do |csv|
+      csv << get_package_info(get_package_list.first).keys
     end
   end
 
@@ -66,7 +68,6 @@ class PackageInfo
         fields[field_name] = field_content
       end
     end
-
     fields
   end
 
@@ -113,5 +114,4 @@ class PackageInfo
     tags.each {|tag| return true if paragraph.downcase.include?(tag)}
     false
   end
-
 end
