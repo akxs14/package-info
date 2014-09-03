@@ -16,11 +16,13 @@ class PackageInfo
 
   DISCLAIMER_TAGS = ["disclaimer"]
 
-  FORMAT_TAGS = ["format"]
+  FORMAT_TAGS = ["format", "html", "txt"]
 
-  def create_package_file filename = "packages.csv"
-    get_package_list.each do |package|
-      write_package_info(package)
+  def create_package_file filename = "packages@#{`hostname`}.csv"
+    CSV.open(filename, "w") do |csv|
+      get_package_list.each do |package|
+        csv << get_package_info(package).values
+      end
     end
   end
 
@@ -28,9 +30,9 @@ class PackageInfo
     `dpkg --get-selections | grep -v "deinstall" | cut -f1 | cut -d':' -f1`.split("\n")
   end
 
-  def write_package_info package
-    # [parse_package_info(package), parse_copyright_file(package)].inject(:merge)
-    parse_copyright_file(package)
+  def get_package_info package
+    puts "retrieve info for #{package}"
+    [parse_package_info(package), parse_copyright_file(package)].inject(:merge)
   end
 
   def parse_package_info package
@@ -40,6 +42,7 @@ class PackageInfo
   end
 
   def parse_copyright_file package
+    return {} if !File.exists?("/usr/share/doc/#{package}/copyright")
     text = File.read("/usr/share/doc/#{package}/copyright")
     
     if is_dep_5_compatible?(text) 
@@ -93,6 +96,8 @@ class PackageInfo
     if line.include?(": ")
       field_name, field_content = line.split(": ")[0], line.split(": ")[1]
     else
+      line = "" if line.nil?
+      field_content = "" if field_content.nil?
       field_content += "\n" + line
     end
     return field_name, field_content
