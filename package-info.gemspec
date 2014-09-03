@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name  = 'package-info'
-  s.version = '0.0.0'
-  s.date = '2014-09-02'
+  s.version = '0.0.1'
+  s.date = '2014-09-03'
   s.summary = "Displays package information in Debian-based distros."
   s.description = <<-eos
       Retrieves information for all installed packages
