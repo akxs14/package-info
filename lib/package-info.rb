@@ -8,12 +8,11 @@ class PackageInfo
 
   LICENSE_TAGS = ["gpl", "mit", "license", "license"]
 
-  LICENSE_TITLE_TAGS = ["GPL", "GNU General Public License", "LGPL-2+",
-                        "LGPL-2.1+", "LGPL-2", "LGPL-3", "LGPL-3+",
+  LICENSE_TITLE_TAGS = ["GPL", "LGPL-2+", "LGPL-2.1+", "LGPL-2", "LGPL-3", "LGPL-3+",
                         "MPL-1.1", "BSD-2", "zlib", "MIT", "MPL", "ISC",
                         "BSD", "Boost", "Apache", "BSD-3", "Cisco",
                         "Apache 2.0", "Apache 1.0", "Apache 1.1", "LGPL",
-                        "ASL", "Artistic", "OFL", "CC-BY-SA", "CPL", ]
+                        "ASL", "Artistic", "OFL", "CC-BY-SA", "CPL"]
 
   COPYRIGHT_TAGS = ["copyright"]
 
@@ -25,7 +24,7 @@ class PackageInfo
 
   FORMAT_TAGS = ["format", "html", "txt"]
 
-  APT_SUMMARY_FIELDS = ["Package", "Description-en", "Version", "Homepage"]
+  APT_SUMMARY_FIELDS = ["Package", "Version", "Description-en", "Homepage"]
 
   LICENSE_SUMMARY_TAGS = ["License"]
 
@@ -40,7 +39,6 @@ class PackageInfo
     write_header_summary(filename)
     CSV.open(filename, "ab") do |csv|
       get_package_list.each {|package| 
-        puts "#{get_package_info_summary(package).values}"
         csv << get_package_info_summary(package).values
       }
     end
@@ -61,13 +59,19 @@ class PackageInfo
   end
 
   def parse_package_info_summary package
-    fields, string_fields = {}, `apt-cache show #{package}`.split("\n")
+    fields, string_fields = init_package_summary_hash, `apt-cache show #{package}`.split("\n")
     string_fields.each do |field|
       if APT_SUMMARY_FIELDS.include?(field.split(": ")[0])
         fields[field.split(": ")[0]] = field.split(": ")[1]
       end
     end
     fields
+  end
+
+  def init_package_summary_hash
+    hash = {}
+    APT_SUMMARY_FIELDS.each {|field| hash[field] = ""}
+    hash
   end
 
   def parse_package_info package
