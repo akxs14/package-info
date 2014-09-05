@@ -2,7 +2,7 @@
 require 'csv'
 
 class PackageInfo
-  COPYRIGHT_FIELDS = ["Format", "Upstream-Name", "Upstream-Contact",
+  COPYRIGHT_FIELDS = ["License-Used", "Format", "Upstream-Name", "Upstream-Contact",
                       "Source", "Disclaimer", "Comment", "License", 
                       "Copyright", "Files"]
 
@@ -18,10 +18,21 @@ class PackageInfo
 
   FORMAT_TAGS = ["format", "html", "txt"]
 
+  APT_SUMMARY_FIELDS = ["Package", "Description-en", "Version", "Homepage"]
+
+  LICENSE_SUMMARY_TAGS = ["License"]
+
   def create_package_file filename = "packages@#{`hostname`}.csv"
     write_header(filename)
     CSV.open(filename, "ab") do |csv|
       get_package_list.each {|package| csv << get_package_info(package).values}
+    end
+  end
+
+  def create_package_file_summary filename = "packages@#{`hostname`}.csv"
+    write_header_summary(filename)
+    CSV.open(filename, "ab") do |csv|
+      get_package_list.each {|package| csv << get_package_info_summary(package).values}
     end
   end
 
@@ -32,6 +43,21 @@ class PackageInfo
   def get_package_info package
     puts "retrieve info for #{package}"
     [parse_package_info(package), parse_copyright_file(package)].inject(:merge)
+  end
+
+  def get_package_info_summary package
+    puts "retrieve info for #{package}"
+    [parse_package_info_summary(package), parse_copyright_file_summary(package)].inject(:merge)
+  end
+
+  def parse_package_info_summary package
+    fields, string_fields = {}, `apt-cache show #{package}`.split("\n")
+    string_fields.each do |field|
+      if APT_SUMMARY_FIELDS.include?(field.split(": ")[0])
+        fields[field.split(": ")[0]] = field.split(": ")[1]
+      end
+    end
+    fields
   end
 
   def parse_package_info package
@@ -46,11 +72,23 @@ class PackageInfo
     is_dep_5_compatible?(text) ? parse_dep_5_compatible(text) : parse_non_dep_5_compatible(text)
   end
 
+  def parse_copyright_file_summary package
+    return {} if !File.exists?("/usr/share/doc/#{package}/copyright")
+    text = File.read("/usr/share/doc/#{package}/copyright")
+    is_dep_5_compatible?(text) ? parse_dep_5_compatible(text) : parse_non_dep_5_compatible(text)
+  end
+
   private
 
   def write_header filename
     CSV.open(filename, "w") do |csv|
       csv << get_package_info(get_package_list.first).keys
+    end
+  end
+
+  def write_header_summary filename
+    CSV.open(filename, "w") do |csv|
+      csv << APT_SUMMARY_FIELDS + LICENSE_SUMMARY_TAGS
     end
   end
 
@@ -73,6 +111,21 @@ class PackageInfo
     fields
   end
 
+  def parse_dep_5_compatible_summary text
+    fields, lines = {}, text
+      .encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+      .split(/\n/)
+    field_name, field_content = "", ""
+
+    lines.each do |line|
+      field_name, field_content = parse_dep_5_line(line, field_name, field_content)
+      if LICENSE_SUMMARY_TAGS.include?(field_name)
+        fields[field_name] = field_content
+      end
+    end
+    fields
+  end
+
   def parse_non_dep_5_compatible text
     fields, paragraphs = init_fields_hash, text.split(/^$\n/)
 
@@ -89,7 +142,19 @@ class PackageInfo
       when match_tags(DISCLAIMER_TAGS, paragraph)
         fields["Disclaimer"] += paragraph
       when match_tags(FORMAT_TAGS, paragraph)
-        fields["Format"] += paragraph        
+        fields["Format"] += paragraph
+      end
+    end
+    fields
+  end
+
+  def parse_non_dep_5_compatible_summary text
+    fields, paragraphs = init_fields_hash, text.split(/^$\n/)
+
+    paragraphs.each do |paragraph|
+      case
+      when match_tags(LICENSE_TAGS, paragraph)
+        fields["License"] += paragraph
       end
     end
     fields
