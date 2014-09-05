@@ -39,7 +39,10 @@ class PackageInfo
   def create_package_file_summary filename = "packages@#{`hostname`}.csv"
     write_header_summary(filename)
     CSV.open(filename, "ab") do |csv|
-      get_package_list.each {|package| csv << get_package_info_summary(package).values}
+      get_package_list.each {|package| 
+        puts "#{get_package_info_summary(package).values}"
+        csv << get_package_info_summary(package).values
+      }
     end
   end
 
@@ -53,7 +56,7 @@ class PackageInfo
   end
 
   def get_package_info_summary package
-    puts "retrieve info for #{package}"
+    puts "retrieve summary for #{package}"
     [parse_package_info_summary(package), parse_copyright_file_summary(package)].inject(:merge)
   end
 
@@ -82,7 +85,7 @@ class PackageInfo
   def parse_copyright_file_summary package
     return {} if !File.exists?("/usr/share/doc/#{package}/copyright")
     text = File.read("/usr/share/doc/#{package}/copyright")
-    is_dep_5_compatible?(text) ? parse_dep_5_compatible(text) : parse_non_dep_5_compatible(text)
+    parse_license_summary(text)
   end
 
   private
@@ -118,21 +121,6 @@ class PackageInfo
     fields
   end
 
-  def parse_dep_5_compatible_summary text
-    fields, lines = {}, text
-      .encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
-      .split(/\n/)
-    field_name, field_content = "", ""
-
-    lines.each do |line|
-      field_name, field_content = parse_dep_5_line(line, field_name, field_content)
-      if LICENSE_SUMMARY_TAGS.include?(field_name)
-        fields[field_name] = field_content
-      end
-    end
-    fields
-  end
-
   def parse_non_dep_5_compatible text
     fields, paragraphs = init_fields_hash, text.split(/^$\n/)
 
@@ -158,15 +146,10 @@ class PackageInfo
     fields
   end
 
-  def parse_non_dep_5_compatible_summary text
-    fields, paragraphs = init_fields_hash, text.split(/^$\n/)
-
-    paragraphs.each do |paragraph|
-      case
-      when match_tags(LICENSE_TITLE_TAGS, paragraph)
-        fields["License"] += paragraph
-      end
-    end
+  def parse_license_summary text
+    fields, license_tags = {"License" => ""}, []
+    LICENSE_TITLE_TAGS.each {|tag| license_tags << tag if text.include?(tag) }
+    fields["License"] = license_tags.join(", ")
     fields
   end
 
